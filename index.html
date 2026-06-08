@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A0A0F" />
+  <meta name="description" content="Catat aktivitas harian ASN, rekap SKP mingguan otomatis." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SKP Harian" />
+  <title>SKP Harian — Catatan Aktivitas ASN</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <!-- HEADER -->
+  <header>
+    <div class="header-brand">
+      <div class="header-title">SKP Harian</div>
+      <div class="header-sub" id="headerGreeting">Selamat datang</div>
+      <div class="header-sub" id="headerDate">Memuat...</div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="notifBtn" title="Notifikasi" aria-label="Notifikasi">🔔</button>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="timeline">
+      <span class="tab-icon">📋</span>
+      Timeline
+    </button>
+    <button class="tab-btn" data-view="rekap">
+      <span class="tab-icon">📊</span>
+      Rekap SKP
+    </button>
+    <button class="tab-btn" data-view="settings">
+      <span class="tab-icon">⚙️</span>
+      Pengaturan
+    </button>
+  </nav>
+
+  <!-- MAIN -->
+  <main>
+    <!-- ── TIMELINE VIEW ── -->
+    <div id="view-timeline" class="view active">
+      <!-- Stats -->
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-num" id="statToday">0</div>
+          <div class="stat-label">Hari Ini</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statWeek">0</div>
+          <div class="stat-label">Minggu Ini</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statTotal">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+
+      <!-- Activity List -->
+      <div id="activityList"></div>
+    </div>
+
+    <!-- ── REKAP VIEW ── -->
+    <div id="view-rekap" class="view">
+      <div class="week-nav">
+        <button class="week-nav-btn" id="prevWeekBtn">‹</button>
+        <div class="week-label" id="weekLabel">Minggu ini</div>
+        <button class="week-nav-btn" id="nextWeekBtn">›</button>
+      </div>
+
+      <div class="rekap-header">
+        <div class="rekap-period" id="rekapPeriod">—</div>
+        <div class="rekap-title" id="rekapTitle">Laporan SKP Mingguan</div>
+      </div>
+
+      <div class="rekap-note" id="rekapAlert">Wajib minimal 40 kegiatan per minggu.</div>
+      <div class="rekap-stats" id="rekapStats"></div>
+
+      <p class="section-title">Output SKP</p>
+      <div class="rekap-output" id="rekapOutput">Belum ada aktivitas minggu ini.</div>
+
+      <button class="copy-btn" id="copyBtn">⎘ Salin Rekap</button>
+      <button class="btn-secondary" id="refreshRekapBtn">↺ Perbarui Rekap</button>
+    </div>
+
+    <!-- ── SETTINGS VIEW ── -->
+    <div id="view-settings" class="view">
+      <p class="section-title mb-12">Profil ASN</p>
+      <div class="settings-section">
+        <div class="settings-row column">
+          <div>
+            <div class="settings-label">Nama ASN</div>
+            <div class="settings-desc">Akan muncul di rekap SKP</div>
+          </div>
+          <input type="text" class="settings-name-input" id="asnName" placeholder="Nama lengkap Anda..." />
+        </div>
+        <div class="settings-row column">
+          <div>
+            <div class="settings-label">Unit Kerja</div>
+          </div>
+          <input type="text" class="settings-name-input" id="unitKerja" placeholder="Contoh: BPAD NTT..." />
+        </div>
+        <div class="settings-row column">
+          <div>
+            <div class="settings-label">Jabatan</div>
+          </div>
+          <input type="text" class="settings-name-input" id="jabatan" placeholder="Contoh: Pranata Komputer..." />
+        </div>
+      </div>
+
+      <p class="section-title mb-12">Notifikasi</p>
+      <div class="settings-section">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Reminder Harian</div>
+            <div class="settings-desc">Setiap hari pukul 16.00</div>
+          </div>
+          <button class="toggle" id="toggleDaily" aria-label="Toggle reminder harian"></button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Reminder Mingguan</div>
+            <div class="settings-desc">Sabtu pukul 09.00</div>
+          </div>
+          <button class="toggle" id="toggleWeekly" aria-label="Toggle reminder mingguan"></button>
+        </div>
+      </div>
+
+      <p class="section-title mb-12">Data</p>
+      <div class="settings-section">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Hapus Semua Data</div>
+            <div class="settings-desc">Tidak bisa dikembalikan</div>
+          </div>
+          <button class="btn-sm danger" id="clearDataBtn">Hapus</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="saveSettingsBtn">Simpan Pengaturan</button>
+
+      <div class="settings-footer">
+        <div class="settings-footer-text">SKP Harian v1.0 — Offline First PWA</div>
+        <div class="settings-footer-text">Data tersimpan lokal di perangkat Anda</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FAB -->
+  <button class="fab" id="fabBtn" title="Tambah Aktivitas" aria-label="Tambah Aktivitas">+</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ── ADD ACTIVITY MODAL ── -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Tambah Aktivitas</div>
+
+    <div class="form-group">
+      <label class="form-label">Foto Bukti (opsional)</label>
+      <div class="photo-input-area" id="photoInputArea">
+        <img id="photoPreview" class="photo-preview" alt="Preview" />
+        <div id="photoPlaceholder">
+          <div class="photo-icon">📸</div>
+          <p>Ketuk untuk ambil foto / upload</p>
+        </div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Deskripsi Kegiatan</label>
+      <textarea class="form-textarea" id="descInput" placeholder="Contoh: Menghadiri rapat koordinasi anggaran BPAD bersama Kepala Biro Keuangan..." rows="3"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Kategori</label>
+      <div class="tag-selector" id="tagSelector">
+        <button class="tag-option" data-tag="rapat">🤝 Rapat</button>
+        <button class="tag-option" data-tag="data">💾 Input Data</button>
+        <button class="tag-option" data-tag="pelayanan">🏛️ Pelayanan</button>
+        <button class="tag-option" data-tag="laporan">📝 Laporan</button>
+        <button class="tag-option selected" data-tag="lainnya">📌 Lainnya</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Waktu</label>
+      <input type="datetime-local" id="dateInput" class="settings-name-input" />
+    </div>
+
+    <button class="btn-primary" id="saveActivityBtn">✓ Simpan Aktivitas</button>
+    <button class="btn-secondary" id="cancelModalBtn">Batal</button>
+  </div>
+</div>
+
+<!-- ── DELETE CONFIRM MODAL ── -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Hapus Aktivitas?</div>
+    <p class="modal-desc">
+      Aktivitas ini akan dihapus permanen dari perangkat Anda.
+    </p>
+    <button class="btn-primary accent2" id="confirmDeleteBtn">Hapus</button>
+    <button class="btn-secondary" id="cancelDeleteBtn">Batal</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// SKP HARIAN — Main App Logic
+// ════════════════════════════════════════
+
+// ── DB SETUP (IndexedDB) ──
+let db;
+const DB_NAME = 'skp-harian';
+const DB_VERSION = 1;
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const database = e.target.result;
+      if (!database.objectStoreNames.contains('activities')) {
+        const store = database.createObjectStore('activities', { keyPath: 'id' });
+        store.createIndex('date', 'date', { unique: false });
+      }
+    };
+    req.onsuccess = (e) => { db = e.target.result; resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbAdd(item) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('activities', 'readwrite');
+    tx.objectStore('activities').add(item);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function dbGetAll() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('activities', 'readonly');
+    const req = tx.objectStore('activities').getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('activities', 'readwrite');
+    tx.objectStore('activities').delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function dbClear() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('activities', 'readwrite');
+    tx.objectStore('activities').clear();
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ── STATE ──
+let activities = [];
+let currentTag = 'lainnya';
+let photoData = null;
+let deleteTargetId = null;
+let currentWeekOffset = 0;
+let settings = {
+  name: '',
+  unitKerja: '',
+  jabatan: '',
+  reminderDaily: false,
+  reminderWeekly: false
+};
+
+// ── HELPERS ──
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+function formatDate(d) {
+  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatDateFull(d) {
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatTime(d) {
+  return `${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')} WITA`;
+}
+
+function formatDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function isSameDay(a, b) { return formatDateKey(a) === formatDateKey(b); }
+
+function getWeekBounds(offset = 0) {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + (offset * 7));
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { monday, sunday };
+}
+
+function getActivitiesInWeek(offset = 0) {
+  const { monday, sunday } = getWeekBounds(offset);
+  return activities.filter(a => {
+    const d = new Date(a.date);
+    return d >= monday && d <= sunday;
+  }).sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function tagClass(tag) {
+  const map = { rapat:'tag-rapat', data:'tag-data', pelayanan:'tag-pelayanan', laporan:'tag-laporan', lainnya:'tag-lainnya' };
+  return map[tag] || 'tag-lainnya';
+}
+
+function tagEmoji(tag) {
+  const map = { rapat:'🤝', data:'💾', pelayanan:'🏛️', laporan:'📝', lainnya:'📌' };
+  return map[tag] || '📌';
+}
+
+function tagLabel(tag) {
+  const map = { rapat:'Rapat', data:'Input Data', pelayanan:'Pelayanan', laporan:'Laporan', lainnya:'Lainnya' };
+  return map[tag] || 'Lainnya';
+}
+
+function showToast(msg, duration = 2500) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ── SETTINGS PERSISTENCE ──
+function loadSettings() {
+  const s = localStorage.getItem('skp-settings');
+  if (s) settings = { ...settings, ...JSON.parse(s) };
+  $('#asnName').value = settings.name;
+  $('#unitKerja').value = settings.unitKerja;
+  $('#jabatan').value = settings.jabatan;
+  updateToggle('toggleDaily', settings.reminderDaily);
+  updateToggle('toggleWeekly', settings.reminderWeekly);
+  updateHeaderGreeting();
+}
+
+function saveSettings() {
+  settings.name = $('#asnName').value.trim();
+  settings.unitKerja = $('#unitKerja').value.trim();
+  settings.jabatan = $('#jabatan').value.trim();
+  localStorage.setItem('skp-settings', JSON.stringify(settings));
+  updateHeaderGreeting();
+  showToast('✓ Pengaturan disimpan');
+}
+
+function updateHeaderGreeting() {
+  const name = settings.name.trim();
+  $('#headerGreeting').textContent = name ? `Hii ${name}` : 'Selamat datang';
+}
+
+function updateToggle(id, state) {
+  const el = $(`#${id}`);
+  el.classList.toggle('on', state);
+}
+
+// ── TIMELINE RENDER ──
+function renderTimeline() {
+  const list = $('#activityList');
+  const today = new Date();
+  const sorted = [...activities].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const todayCount = activities.filter(a => isSameDay(new Date(a.date), today)).length;
+  const { monday, sunday } = getWeekBounds(0);
+  const weekCount = activities.filter(a => { const d = new Date(a.date); return d >= monday && d <= sunday; }).length;
+
+  $('#statToday').textContent = todayCount;
+  $('#statWeek').textContent = weekCount;
+  $('#statTotal').textContent = activities.length;
+
+  if (sorted.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div class="empty-title">Belum ada aktivitas</div>
+        <div class="empty-desc">Tekan tombol + untuk mencatat<br>kegiatan harian Anda sekarang.</div>
+      </div>`;
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  sorted.forEach(a => {
+    const key = formatDateKey(new Date(a.date));
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(a);
+  });
+
+  let html = '';
+  Object.keys(groups).forEach(key => {
+    const d = new Date(key + 'T00:00:00');
+    const isToday = isSameDay(d, today);
+    html += `<div class="date-group-header">${isToday ? '● Hari Ini' : formatDate(d)}</div>`;
+    groups[key].forEach(a => {
+      const t = new Date(a.date);
+      html += `
+        <div class="activity-card" data-id="${a.id}">
+          ${a.photo ? `<img class="activity-photo" src="${a.photo}" alt="Foto aktivitas" loading="lazy" />` : `<div class="activity-photo-placeholder">${tagEmoji(a.tag)}</div>`}
+          <div class="activity-body">
+            <div class="activity-meta">
+              <span class="activity-time">${formatTime(t)}</span>
+              <span class="activity-tag ${tagClass(a.tag)}">${tagEmoji(a.tag)} ${tagLabel(a.tag)}</span>
+            </div>
+            <div class="activity-desc">${escapeHtml(a.desc)}</div>
+            <div class="activity-actions">
+              <button class="btn-sm danger delete-btn" data-id="${a.id}">Hapus</button>
+            </div>
+          </div>
+        </div>`;
+    });
+  });
+
+  list.innerHTML = html;
+
+  // Delete buttons
+  $$('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteTargetId = btn.dataset.id;
+      openModal('deleteModal');
+    });
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── REKAP RENDER ──
+function renderRekap() {
+  const acts = getActivitiesInWeek(currentWeekOffset);
+  const { monday, sunday } = getWeekBounds(currentWeekOffset);
+
+  $('#rekapPeriod').textContent = `${formatDateFull(monday)} – ${formatDateFull(sunday)}`;
+  $('#weekLabel').textContent = currentWeekOffset === 0 ? 'Minggu ini' : currentWeekOffset === -1 ? 'Minggu lalu' : `${Math.abs(currentWeekOffset)} minggu lalu`;
+
+  // Tag stats
+  const tagCounts = {};
+  acts.forEach(a => { tagCounts[a.tag] = (tagCounts[a.tag] || 0) + 1; });
+  const pills = Object.entries(tagCounts).map(([t, c]) => `<div class="rekap-pill">${tagEmoji(t)} <strong>${c}</strong> ${tagLabel(t)}</div>`).join('');
+  $('#rekapStats').innerHTML = acts.length > 0 ? `<div class="rekap-pill">📋 <strong>${acts.length}</strong> aktivitas</div>${pills}` : '';
+  const missing = Math.max(0, 40 - acts.length);
+  const alertEl = $('#rekapAlert');
+  if (missing > 0) {
+    alertEl.textContent = `⚠️ Wajib minimal 40 kegiatan per minggu. Tambah ${missing} lagi.`;
+    alertEl.classList.add('warning');
+  } else {
+    alertEl.textContent = '✓ Target 40 kegiatan per minggu tercapai.';
+    alertEl.classList.remove('warning');
+  }
+
+  if (acts.length === 0) {
+    $('#rekapOutput').textContent = 'Belum ada aktivitas pada periode ini.';
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  acts.forEach(a => {
+    const key = formatDateKey(new Date(a.date));
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(a);
+  });
+
+  const asnName = settings.name || '[Nama ASN]';
+  const unitKerja = settings.unitKerja || '[Unit Kerja]';
+  const jabatan = settings.jabatan || '[Jabatan]';
+
+  let out = `LAPORAN KINERJA HARIAN (SKP)\n`;
+  out += `${'─'.repeat(40)}\n`;
+  out += `Nama      : ${asnName}\n`;
+  out += `Jabatan   : ${jabatan}\n`;
+  out += `Unit Kerja: ${unitKerja}\n`;
+  out += `Periode   : ${formatDateFull(monday)} s.d. ${formatDateFull(sunday)}\n`;
+  out += `${'─'.repeat(40)}\n\n`;
+
+  let no = 1;
+  Object.keys(groups).sort().forEach(key => {
+    const d = new Date(key + 'T00:00:00');
+    out += `📅 ${formatDate(d)}\n`;
+    groups[key].forEach(a => {
+      const t = new Date(a.date);
+      out += `  ${no}. [${formatTime(t)}] ${a.desc}`;
+      out += ` (${tagLabel(a.tag)})`;
+      if (a.photo) out += ` 📸`;
+      out += `\n`;
+      no++;
+    });
+    out += `\n`;
+  });
+
+  out += `${'─'.repeat(40)}\n`;
+  out += `Total Kegiatan: ${acts.length} aktivitas\n`;
+  out += `Dihasilkan oleh SKP Harian App`;
+
+  $('#rekapOutput').textContent = out;
+}
+
+// ── MODAL ──
+function openModal(id) {
+  $(`#${id}`).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  $(`#${id}`).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── PHOTO HANDLING ──
+function handlePhotoChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    // Compress image
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+      else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      photoData = canvas.toDataURL('image/jpeg', 0.7);
+      const preview = $('#photoPreview');
+      const placeholder = $('#photoPlaceholder');
+      preview.src = photoData;
+      preview.classList.add('show');
+      placeholder.style.display = 'none';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── SAVE ACTIVITY ──
+async function saveActivity() {
+  const desc = $('#descInput').value.trim();
+  if (!desc) { showToast('⚠️ Deskripsi wajib diisi'); return; }
+
+  const dateVal = $('#dateInput').value;
+  const date = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+
+  const activity = {
+    id: Date.now().toString(),
+    desc,
+    tag: currentTag,
+    date,
+    photo: photoData || null
+  };
+
+  await dbAdd(activity);
+  activities.push(activity);
+  renderTimeline();
+  renderRekap();
+  closeModal('addModal');
+  resetForm();
+  showToast('✓ Aktivitas berhasil disimpan');
+}
+
+function resetForm() {
+  $('#descInput').value = '';
+  $('#photoInput').value = '';
+  photoData = null;
+  $('#photoPreview').classList.remove('show');
+  $('#photoPreview').src = '';
+  $('#photoPlaceholder').style.display = '';
+  currentTag = 'lainnya';
+  $$('.tag-option').forEach(b => b.classList.remove('selected'));
+  document.querySelector('[data-tag="lainnya"]').classList.add('selected');
+  // Reset datetime
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  $('#dateInput').value = now.toISOString().slice(0, 16);
+}
+
+// ── HEADER DATE ──
+function updateHeaderDate() {
+  const now = new Date();
+  $('#headerDate').textContent = formatDate(now);
+}
+
+// ── VIEWS ──
+function switchView(view) {
+  $$('.view').forEach(v => v.classList.remove('active'));
+  $(`#view-${view}`).classList.add('active');
+  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  if (view === 'rekap') renderRekap();
+  if (view === 'settings') loadSettings();
+}
+
+// ── NOTIFICATIONS ──
+async function requestNotif() {
+  if (!('Notification' in window)) { showToast('Browser tidak mendukung notifikasi'); return false; }
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') { showToast('Notifikasi diblokir di browser'); return false; }
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+async function scheduleNotifs() {
+  const granted = await requestNotif();
+  if (!granted) return;
+
+  // Daily: check every hour (simplified for PWA)
+  // Real scheduling requires service worker push
+  if (settings.reminderDaily || settings.reminderWeekly) {
+    showToast('🔔 Notifikasi aktif (dicek saat app dibuka)');
+  }
+
+  // Check if should show reminder now
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay(); // 0=Sun,6=Sat
+
+  const lastNotif = localStorage.getItem('skp-last-notif');
+  const todayKey = formatDateKey(now);
+
+  if (settings.reminderDaily && hour >= 16 && lastNotif !== `daily-${todayKey}`) {
+    new Notification('SKP Harian 🔔', {
+      body: 'Jangan lupa catat kegiatan hari ini!',
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-72.png',
+    });
+    localStorage.setItem('skp-last-notif', `daily-${todayKey}`);
+  }
+
+  if (settings.reminderWeekly && day === 6 && hour >= 9 && lastNotif !== `weekly-${todayKey}`) {
+    new Notification('SKP Harian 📊', {
+      body: 'Sabtu pagi — waktunya rekap SKP mingguan!',
+      icon: 'icons/icon-192.png',
+    });
+    localStorage.setItem('skp-last-notif', `weekly-${todayKey}`);
+  }
+}
+
+// ── INIT ──
+async function init() {
+  await initDB();
+  activities = await dbGetAll();
+  loadSettings();
+  updateHeaderDate();
+  renderTimeline();
+
+  // Set default datetime
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  $('#dateInput').value = now.toISOString().slice(0, 16);
+
+  // Tab navigation
+  $$('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  // FAB
+  $('#fabBtn').addEventListener('click', () => {
+    const n = new Date();
+    n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
+    $('#dateInput').value = n.toISOString().slice(0, 16);
+    openModal('addModal');
+  });
+
+  // Modal close
+  $('#cancelModalBtn').addEventListener('click', () => closeModal('addModal'));
+  $('#addModal').addEventListener('click', (e) => { if (e.target === $('#addModal')) closeModal('addModal'); });
+
+  // Photo
+  $('#photoInputArea').addEventListener('click', () => $('#photoInput').click());
+  $('#photoInput').addEventListener('change', handlePhotoChange);
+
+  // Tag selector
+  $$('.tag-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTag = btn.dataset.tag;
+      $$('.tag-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+
+  // Save activity
+  $('#saveActivityBtn').addEventListener('click', saveActivity);
+
+  // Delete
+  $('#cancelDeleteBtn').addEventListener('click', () => closeModal('deleteModal'));
+  $('#deleteModal').addEventListener('click', (e) => { if (e.target === $('#deleteModal')) closeModal('deleteModal'); });
+  $('#confirmDeleteBtn').addEventListener('click', async () => {
+    if (!deleteTargetId) return;
+    await dbDelete(deleteTargetId);
+    activities = activities.filter(a => a.id !== deleteTargetId);
+    deleteTargetId = null;
+    renderTimeline();
+    renderRekap();
+    closeModal('deleteModal');
+    showToast('🗑 Aktivitas dihapus');
+  });
+
+  // Rekap week nav
+  $('#prevWeekBtn').addEventListener('click', () => { currentWeekOffset--; renderRekap(); });
+  $('#nextWeekBtn').addEventListener('click', () => { if (currentWeekOffset < 0) { currentWeekOffset++; renderRekap(); } });
+  $('#refreshRekapBtn').addEventListener('click', () => renderRekap());
+
+  // Copy rekap
+  $('#copyBtn').addEventListener('click', async () => {
+    const text = $('#rekapOutput').textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      const btn = $('#copyBtn');
+      btn.textContent = '✓ Tersalin!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '⎘ Salin Rekap'; btn.classList.remove('copied'); }, 2000);
+    } catch {
+      showToast('Gagal menyalin — silakan salin manual');
+    }
+  });
+
+  // Settings
+  $('#saveSettingsBtn').addEventListener('click', saveSettings);
+
+  $('#toggleDaily').addEventListener('click', async () => {
+    settings.reminderDaily = !settings.reminderDaily;
+    updateToggle('toggleDaily', settings.reminderDaily);
+    if (settings.reminderDaily) await requestNotif();
+  });
+
+  $('#toggleWeekly').addEventListener('click', async () => {
+    settings.reminderWeekly = !settings.reminderWeekly;
+    updateToggle('toggleWeekly', settings.reminderWeekly);
+    if (settings.reminderWeekly) await requestNotif();
+  });
+
+  $('#clearDataBtn').addEventListener('click', async () => {
+    if (!confirm('Hapus semua data aktivitas? Tindakan ini tidak bisa dibatalkan.')) return;
+    await dbClear();
+    activities = [];
+    renderTimeline();
+    renderRekap();
+    showToast('🗑 Semua data dihapus');
+  });
+
+  $('#notifBtn').addEventListener('click', scheduleNotifs);
+
+  // Check notification on open
+  setTimeout(scheduleNotifs, 1000);
+
+  // Service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+}
+
+init();
+</script>
+</body>
+</html>
